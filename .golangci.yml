@@ -1,0 +1,30 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+  settings:
+    errcheck:
+      exclude-functions:
+        # Best-effort response writes and defer-time closes: no recovery path.
+        - (*encoding/json.Encoder).Encode
+        - (net/http.ResponseWriter).Write
+        - (io.ReadCloser).Close
+  exclusions:
+    rules:
+      # QF1002 (untagged->tagged switch) is stylistic-only and fires on
+      # pre-existing test-file httptest handler switches; test files are
+      # hook-protected from developer edits, so exclude narrowly rather
+      # than suppress project-wide.
+      - path: _test\.go
+        linters:
+          - staticcheck
+        text: "QF1002"
+
+formatters:
+  enable:
+    - gofmt

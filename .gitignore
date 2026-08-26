@@ -1,0 +1,22 @@
+# Binaries (all builds target bin/; never ignore by binary name —
+# an unanchored name also matches source dirs like cmd/discord-mcp/)
+/bin/
+*.exe
+*.test
+*.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# Secrets and environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Editor
+.idea/
+*.swp
+.DS_Store
