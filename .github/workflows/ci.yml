@@ -43,3 +43,35 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.13.1
+
+  # Builds the serve image on every run so a pull request proves the
+  # Containerfile still builds, and publishes it for the in-cluster
+  # deployments (consumed by OMGCG, owned here) only from main after build,
+  # test and lint pass. Deployments pin the digest this job prints, not a
+  # tag, so a re-pushed tag can never change what a pod runs.
+  image:
+    name: Image
+    needs: [build-test, lint]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/discord-mcp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: podman build -f Containerfile -t "${IMAGE}:sha-${GITHUB_SHA::12}" -t "${IMAGE}:main" .
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          podman push --digestfile digest "${IMAGE}:sha-${GITHUB_SHA::12}"
+          podman push "${IMAGE}:main"
+          echo "Pushed ${IMAGE}@$(cat digest) (sha-${GITHUB_SHA::12})" >> "$GITHUB_STEP_SUMMARY"
